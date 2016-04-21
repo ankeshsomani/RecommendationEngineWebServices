@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"	
+	xmlns:context="http://www.springframework.org/schema/context" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans		http://www.springframework.org/schema/beans/spring-beans-4.0.xsd	
+		http://www.springframework.org/schema/context	http://www.springframework.org/schema/context/spring-context-4.0.xsd	
+		http://www.springframework.org/schema/tx	http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+		http://www.springframework.org/schema/mvc	http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd 
+		http://www.springframework.org/schema/util	http://www.springframework.org/schema/util/spring-util-4.0.xsd
+		http://www.springframework.org/schema/aop 	http://www.springframework.org/schema/aop/spring-aop-4.0.xsd"  default-autowire="constructor">
+
+	<context:annotation-config />
+	
+	<bean id="webServicesPropertiesPlacholder"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
+		lazy-init="false">
+		<property name="locations">
+			<list>
+				<value>file:/data/tomcat/config/myproject/myproject_service.properties</value>
+			</list>
+		</property>
+	</bean>
+	
+	<context:component-scan
+		base-package="com.ankesh.myproject.service.controller,
+				com.ankesh.myproject.service,																	
+				com.ankesh.myproject.service.domain,
+				com.ankesh.myproject.common.cache,
+				com.ankesh.myproject.persistence.dao,
+				com.ankesh.myproject.persistence.entity,
+				com.ankesh.myproject.persistence.dao.impl,
+				com.ankesh.myproject.persistence.generic.dao,
+				com.ankesh.myproject.persistence.generic.dao.impl">
+		<context:include-filter type="annotation"
+			expression="org.springframework.stereotype.Repository" />
+	</context:component-scan>
+	
+	<mvc:annotation-driven />
+	<!--  Comment By Gautam Start Here
+	<bean class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close" id="dataSource">
+		<property name="driverClassName" value="${uk.co.morses.cap.jdbc.driver}" />
+		<property name="url" value="${uk.co.morses.cap.jdbc.url}" />
+		<property name="username" value="${uk.co.morses.cap.jdbc.username}" />
+		<property name="password" value="${uk.co.morses.cap.jdbc.password}" />
+	</bean>
+		 Comment By Gautam End Here
+	-->
+	<!-- C3p0 Connection Pooling For Improve Performance-->
+	<bean class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close"		 id="dataSource">
+		<property name="driverClass" value="${com.ankesh.myproject.jdbc.driver}" />
+		<property name="jdbcUrl" value="${com.ankesh.myproject.jdbc.url}" />
+		<property name="user" value="${com.ankesh.myproject.jdbc.username}" />
+		<property name="password" value="${com.ankesh.myproject.jdbc.password}" />
+			
+       <property name="acquireIncrement" value="${com.ankesh.myproject.c3p0.acquireIncrement}" />
+       <property name="minPoolSize" value="${com.ankesh.myproject.c3p0.minPoolSize}" />
+       <property name="maxPoolSize" value="${com.ankesh.myproject.c3p0.maxPoolSize}" />
+       <property name="maxIdleTime" value="${com.ankesh.myproject.c3p0.maxIdleTime}" />
+       <property name="unreturnedConnectionTimeout" value="${com.ankesh.myproject.c3p0.unreturnedConnectionTimeout}" />
+       <property name="debugUnreturnedConnectionStackTraces" value="${com.ankesh.myproject.c3p0.debugUnreturnedConnectionStackTraces}" /> 
+		
+	</bean>
+	<!-- C3p0 Connection Pooling For Improve Performance-->
+	
+	<bean id="entityManagerFactory"
+		class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="jpaVendorAdapter">
+			<bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter" />
+		</property>
+		<property name="packagesToScan" value="com.ankesh.myproject.persistence.entity" />
+		<property name="jpaProperties">
+			<props>
+				<prop key="hibernate.dialect">com.ankesh.myproject.persistence.dialect.CustomOracle9iDialect</prop>
+				<prop key="hibernate.hbm2ddl.auto">validate</prop>
+				<prop key="hibernate.ejb.naming_strategy">org.hibernate.cfg.ImprovedNamingStrategy</prop>
+				<prop key="hibernate.connection.charSet">UTF-8</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.default_batch_fetch_size">16</prop>
+				<prop key="hibernate.jdbc.batch_size">0</prop>
+				<!-- Comment By Gautam Start Here
+				<prop key="hibernate.connection.pool_size">10</prop>
+				 Comment By Gautam End Here
+				-->
+				
+			</props>
+		</property>
+	</bean>
+	
+	<bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+		<property name="entityManagerFactory" ref="entityManagerFactory" />
+	</bean>
+	
+	<!-- Configure to plugin JSON as request and response in method handler -->
+	<bean
+		class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<ref bean="jsonMessageConverter" />
+			</list>
+		</property>
+	</bean>
+	
+	<!-- Configure bean to convert JSON to POJO and vice versa -->
+	<bean id="jsonMessageConverter"
+		class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+	</bean>
+	
+	<bean id="capServiceCacheItemLoader" class="com.ankesh.myproject.common.cache.CapServiceCacheItemLoader">
+		
+		<property name="capServiceConfigMap">
+			<bean class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+				<property name="location" value="classpath:capserviceconfiguration.properties" />
+			</bean>
+		</property>	
+		
+		<property name="capServiceErrorCodesMap">
+			<bean class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+				<property name="location" value="classpath:capserviceerrorcodes.properties" />
+			</bean>
+		</property>
+		<!--  To Disable the entry of SERVICE_AUDIT_LOG table -->
+		<property name ="enableDBAuditLogs" value="${com.ankesh.myproject.config.enableDBAuditLog}"/>
+		
+		<!--  Retrieving the database details from the properties file -->
+		<property name="driverClass" value="${com.ankesh.myproject.jdbc.driver}" />
+		<property name="jdbcUrl" value="${com.ankesh.myproject.jdbc.url}" />
+		<property name="jdbcUsername" value="${com.ankesh.myproject.jdbc.username}" />
+		<property name="jdbcPassword" value="${com.ankesh.myproject.jdbc.password}" />
+	</bean>
+	
+	<!-- <bean  id="requestInterceptor" class="uk.co.morses.cap.service.interceptor.RequestInterceptor" />
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/**"/>			
+			<mvc:mapping path="/customer/**" />
+			<mvc:mapping path="/account/**" />
+			<mvc:mapping path="/banking/**" />
+			<mvc:mapping path="/payment/**" />
+			<mvc:mapping path="/cashReconciliation/**" />
+			<mvc:mapping path="/eow/**" />									
+			<ref bean="requestInterceptor"/>
+	 	</mvc:interceptor>
+	 </mvc:interceptors> -->
+	 
+	<!--  --><tx:annotation-driven transaction-manager="transactionManager" />
+	
+	<context:spring-configured />
+	<context:annotation-config />
+	
+</beans>

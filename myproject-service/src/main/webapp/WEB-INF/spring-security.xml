@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:security="http://www.springframework.org/schema/security"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans	http://www.springframework.org/schema/beans/spring-beans-4.0.xsd 
+       http://www.springframework.org/schema/security	http://www.springframework.org/schema/security/spring-security-3.2.xsd
+       http://www.springframework.org/schema/context	http://www.springframework.org/schema/context/spring-context-4.0.xsd">
+
+	<security:http auto-config="true" create-session="stateless" authentication-manager-ref="authManager" >
+		<security:intercept-url pattern="/myprojectservice/*" access="ROLE_USER"  />
+		<security:custom-filter ref="basicHeaderAuthenticationFilter" before="BASIC_AUTH_FILTER" />		
+		<security:http-basic  />
+	</security:http>
+
+	<security:authentication-manager id="authManager">
+		<security:authentication-provider>
+			<security:user-service>
+				<security:user name="${com.ankesh.myproject.service.serviceUserID}" password="${com.ankesh.myproject.service.servicePassword}" authorities="ROLE_USER" />
+			</security:user-service>
+		</security:authentication-provider>
+	</security:authentication-manager>
+	
+	<bean id="basicHeaderAuthenticationFilter"
+        class="com.ankesh.myproject.service.security.filter.BasicHeaderAuthenticationFilter">
+        <property name="authenticationManager" ref="authManager" />
+        <property name="authenticationEntryPoint" ref="authenticationEntryPoint" />
+    </bean>
+	
+	 <bean id="authenticationEntryPoint"
+        class="org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint">
+        <property name="realmName" value="mcl.co.uk" />
+    </bean>
+ 
+</beans>
